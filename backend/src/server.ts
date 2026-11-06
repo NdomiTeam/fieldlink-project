@@ -16,6 +16,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4100;
 
+// Railway sits in front of this service as a reverse proxy (adds its own
+// X-Forwarded-For). Without this, express-rate-limit throws on every
+// request instead of rate-limiting it, since it can't tell which hop of
+// X-Forwarded-For to trust - this broke every rate-limited route (login
+// included) with a generic 500.
+app.set('trust proxy', 1);
+
 // A browser's Origin header never has a trailing slash, but it's an easy
 // mistake to paste FRONTEND_BASE_URL with one (e.g. copied from the
 // address bar) — strip it so a stray slash doesn't silently break CORS.
