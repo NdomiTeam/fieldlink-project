@@ -26,6 +26,29 @@ app.use(express.json({ limit: '2mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// TEMPORARY: diagnosing a live RLS failure that shouldn't be possible if
+// SUPABASE_SERVICE_ROLE_KEY is genuinely in effect. Remove once resolved.
+app.get('/debug/service-role-check', async (_req, res) => {
+  const { supabaseAdmin } = await import('./config/supabase.js');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  let decodedRole = 'unparseable';
+  try {
+    decodedRole = JSON.parse(Buffer.from(key.split('.')[1] || '', 'base64').toString()).role;
+  } catch {
+    // leave as 'unparseable'
+  }
+  if (!supabaseAdmin) {
+    res.json({ supabaseAdminIsNull: true, decodedRole });
+    return;
+  }
+  const { error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
+  res.json({
+    decodedRoleFromEnvKey: decodedRole,
+    authAdminListUsersWorked: !error,
+    authAdminError: error?.message ?? null,
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/field-spaces', fieldSpacesRoutes);
