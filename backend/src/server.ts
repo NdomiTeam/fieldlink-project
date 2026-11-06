@@ -8,6 +8,7 @@ import studentsRoutes from './routes/students.routes.js';
 import fieldSpacesRoutes from './routes/field-spaces.routes.js';
 import applicationsRoutes from './routes/applications.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
+import fieldApplicationsRoutes from './routes/field-applications.routes.js';
 import { startConfirmationExpiryJob } from './jobs/confirmation-expiry.job.js';
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.use('/api/students', studentsRoutes);
 app.use('/api/field-spaces', fieldSpacesRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api', documentsRoutes);
+app.use('/api/field-applications', fieldApplicationsRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[UNHANDLED]', err);

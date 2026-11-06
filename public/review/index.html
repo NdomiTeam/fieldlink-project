@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Experience Applications</title>
+<style>
+  :root {
+    --blue-900: #16307a; --blue-800: #1e3f93; --blue-600: #2456d6; --blue-500: #3568e8;
+    --bg: #eef2fb; --card: #ffffff; --ink: #0f1b3d; --ink-soft: #46527a;
+    --border: #d7deef; --field-bg: #fbfcff; --placeholder: #93a0c2;
+    --font-display: 'Poppins', 'Segoe UI', sans-serif;
+    --font-body: 'Inter', 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+  .topbar { background: linear-gradient(135deg, var(--blue-900), var(--blue-800)); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .topbar h1 { color: #fff; font-family: var(--font-display); font-size: 17px; font-weight: 700; margin: 0; }
+  .topbar .count { color: #cdd9ff; font-size: 12px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 18px 50px; }
+
+  .gate { max-width: 380px; margin: 80px auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 26px; text-align: center; box-shadow: 0 8px 24px -16px rgba(20,35,90,.35); }
+  .gate h2 { font-family: var(--font-display); font-size: 19px; margin: 0 0 6px; }
+  .gate p { color: var(--ink-soft); font-size: 13px; margin: 0 0 18px; }
+  .gate input { width: 100%; border: 1px solid var(--border); background: var(--field-bg); border-radius: 10px; padding: 12px 13px; font-size: 14px; outline: none; margin-bottom: 10px; }
+  .gate input:focus { border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(53,104,232,.2); }
+  .gate button { width: 100%; border: 0; border-radius: 999px; padding: 13px; background: linear-gradient(135deg, var(--blue-600), var(--blue-500)); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .gate .err { color: #e0524a; font-size: 12px; min-height: 16px; margin-top: 8px; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .toolbar input[type="search"] { flex: 1; min-width: 200px; border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 10px 13px; font-size: 13px; outline: none; }
+  .toolbar input[type="search"]:focus { border-color: var(--blue-500); }
+  .btn { border: 1.5px solid var(--border); background: var(--card); color: var(--ink); border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:hover { border-color: var(--blue-500); }
+  .btn-primary { border: 0; background: linear-gradient(135deg, var(--blue-600), var(--blue-500)); color: #fff; }
+
+  .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 1100px; }
+  th { text-align: left; background: var(--field-bg); color: var(--ink-soft); font-weight: 700; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; max-width: 220px; }
+  tr:last-child td { border-bottom: 0; }
+  tr:hover td { background: #f7f9ff; }
+  .muted { color: var(--ink-soft); }
+  .empty { text-align: center; padding: 50px 20px; color: var(--ink-soft); }
+  .loading { text-align: center; padding: 50px 20px; color: var(--ink-soft); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+</head>
+<body>
+
+<div id="gateView" class="gate">
+  <h2>Field Experience Applications</h2>
+  <p>Enter the viewing passcode to continue.</p>
+  <input type="password" id="passcodeInput" placeholder="Passcode" />
+  <button id="unlockBtn">Unlock</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<div id="appView" hidden>
+  <div class="topbar">
+    <h1>Field Experience Applications</h1>
+    <span class="count" id="countLabel"></span>
+  </div>
+  <main>
+    <div class="toolbar">
+      <input type="search" id="searchBox" placeholder="Search by name, email, university, company..." />
+      <button class="btn" id="exportBtn">Export CSV</button>
+      <button class="btn" id="refreshBtn">Refresh</button>
+      <button class="btn" id="lockBtn">Lock</button>
+    </div>
+    <div class="table-wrap">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Submitted</th><th>Full Name</th><th>Email</th><th>Phone</th><th>Gender</th>
+            <th>University</th><th>Course</th><th>Reg. No.</th><th>Level</th><th>Year</th>
+            <th>Location</th><th>Company 1</th><th>Company 2</th><th>Company 3</th><th>Reason</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="loading" id="loadingState" hidden>Loading…</div>
+      <div class="empty" id="emptyState" hidden>No applications yet.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  const API_BASE = 'https://fieldlink.ndomi.app';
+  const STORAGE_KEY = 'ndomi.fieldApplicationsPasscode';
+
+  const gateView = document.getElementById('gateView');
+  const appView = document.getElementById('appView');
+  const passcodeInput = document.getElementById('passcodeInput');
+  const gateErr = document.getElementById('gateErr');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const lockBtn = document.getElementById('lockBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const searchBox = document.getElementById('searchBox');
+  const tableBody = document.getElementById('tableBody');
+  const loadingState = document.getElementById('loadingState');
+  const emptyState = document.getElementById('emptyState');
+  const countLabel = document.getElementById('countLabel');
+
+  let allRows = [];
+
+  function esc(s) {
+    return (s ?? '').toString().replace(/</g, '&lt;');
+  }
+
+  function fmtDate(iso) {
+    try {
+      return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return iso; }
+  }
+
+  function render(rows) {
+    if (!rows.length) {
+      tableBody.innerHTML = '';
+      emptyState.hidden = false;
+      return;
+    }
+    emptyState.hidden = true;
+    tableBody.innerHTML = rows.map((r) => `
+      <tr>
+        <td class="muted">${esc(fmtDate(r.created_at))}</td>
+        <td>${esc(r.full_name)}</td>
+        <td>${esc(r.email)}</td>
+        <td>${esc(r.phone)}</td>
+        <td>${esc(r.gender)}</td>
+        <td>${esc(r.university)}</td>
+        <td>${esc(r.course)}</td>
+        <td>${esc(r.registration_number)}</td>
+        <td>${esc(r.academic_level)}</td>
+        <td>${esc(r.year_of_study)}</td>
+        <td>${esc(r.preferred_location)}</td>
+        <td>${esc(r.company_choice_1)}</td>
+        <td>${esc(r.company_choice_2)}</td>
+        <td>${esc(r.company_choice_3)}</td>
+        <td class="muted">${esc(r.reason) || '—'}</td>
+      </tr>
+    `).join('');
+  }
+
+  function applyFilter() {
+    const q = searchBox.value.trim().toLowerCase();
+    if (!q) { render(allRows); countLabel.textContent = allRows.length + ' application(s)'; return; }
+    const filtered = allRows.filter((r) =>
+      [r.full_name, r.email, r.university, r.course, r.company_choice_1, r.company_choice_2, r.company_choice_3, r.preferred_location]
+        .some((v) => (v || '').toLowerCase().includes(q))
+    );
+    render(filtered);
+    countLabel.textContent = filtered.length + ' of ' + allRows.length + ' application(s)';
+  }
+
+  function toCsv(rows) {
+    const headers = ['created_at','full_name','email','phone','gender','university','course','registration_number','academic_level','year_of_study','preferred_location','company_choice_1','company_choice_2','company_choice_3','reason'];
+    const lines = [headers.join(',')];
+    for (const r of rows) {
+      lines.push(headers.map((h) => '"' + (r[h] ?? '').toString().replace(/"/g, '""') + '"').join(','));
+    }
+    return lines.join('\n');
+  }
+
+  async function loadData(passcode) {
+    loadingState.hidden = false;
+    emptyState.hidden = true;
+    tableBody.innerHTML = '';
+    try {
+      const res = await fetch(API_BASE + '/api/field-applications', {
+        headers: { Authorization: 'Bearer ' + passcode },
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json || json.success === false) {
+        throw new Error((json && json.error) || ('Request failed (' + res.status + ')'));
+      }
+      allRows = json.data || [];
+      applyFilter();
+      return true;
+    } catch (err) {
+      return err;
+    } finally {
+      loadingState.hidden = true;
+    }
+  }
+
+  async function tryUnlock(passcode, { persist }) {
+    gateErr.textContent = '';
+    unlockBtn.disabled = true;
+    unlockBtn.textContent = 'Checking…';
+    const result = await loadData(passcode);
+    unlockBtn.disabled = false;
+    unlockBtn.textContent = 'Unlock';
+    if (result === true) {
+      if (persist) {
+        try { localStorage.setItem(STORAGE_KEY, passcode); } catch {}
+      }
+      gateView.hidden = true;
+      appView.hidden = false;
+      return true;
+    }
+    gateErr.textContent = result instanceof Error ? result.message : 'Incorrect passcode.';
+    return false;
+  }
+
+  unlockBtn.addEventListener('click', () => tryUnlock(passcodeInput.value.trim(), { persist: true }));
+  passcodeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockBtn.click(); });
+
+  lockBtn.addEventListener('click', () => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    appView.hidden = true;
+    gateView.hidden = false;
+    passcodeInput.value = '';
+    passcodeInput.focus();
+  });
+
+  refreshBtn.addEventListener('click', async () => {
+    let passcode = '';
+    try { passcode = localStorage.getItem(STORAGE_KEY) || ''; } catch {}
+    if (passcode) await loadData(passcode);
+  });
+
+  searchBox.addEventListener('input', applyFilter);
+
+  exportBtn.addEventListener('click', () => {
+    const blob = new Blob([toCsv(allRows)], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'field-experience-applications.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  // Auto-unlock if a passcode is already remembered on this device.
+  (async function init() {
+    let stored = '';
+    try { stored = localStorage.getItem(STORAGE_KEY) || ''; } catch {}
+    if (stored) {
+      const ok = await tryUnlock(stored, { persist: false });
+      if (!ok) { try { localStorage.removeItem(STORAGE_KEY); } catch {} }
+    }
+  })();
+})();
+</script>
+</body>
+</html>

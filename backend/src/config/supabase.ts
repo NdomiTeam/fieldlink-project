@@ -82,6 +82,28 @@ export const ndomiPublicSchema = supabaseServiceRoleKey
   : null;
 
 /**
+ * Reads the "Ndomi Innovation Technologies Website" project's own
+ * Supabase (a fully separate project from this one) — that's where the
+ * public /apply/ lead-capture form writes directly via its own anon key,
+ * since it has nothing to do with FieldLink's own schema/applications.
+ * This client is only used by the admin-only "Field applications" view
+ * below, to read it back without making the admin visit Supabase's own
+ * dashboard.
+ */
+const websiteSupabaseUrl = process.env.NDOMI_WEBSITE_SUPABASE_URL;
+const websiteSupabaseServiceRoleKey = process.env.NDOMI_WEBSITE_SUPABASE_SERVICE_ROLE_KEY;
+
+export const ndomiWebsiteSupabase = websiteSupabaseUrl && websiteSupabaseServiceRoleKey
+  ? createClient(websiteSupabaseUrl, websiteSupabaseServiceRoleKey, {
+      realtime: realtimeOptions,
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  : null;
+
+/**
  * A fresh, throwaway client for one signInWithPassword call.
  *
  * IMPORTANT: never call .auth.signInWithPassword() on the shared
