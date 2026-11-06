@@ -42,10 +42,24 @@ app.get('/debug/service-role-check', async (_req, res) => {
     return;
   }
   const { error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
+
+  const selectResult = await supabaseAdmin.from('company_profiles').select('id').limit(1);
+  const writeResult = await supabaseAdmin
+    .from('company_profiles')
+    .update({ name: 'debug-route-write-test' })
+    .eq('id', '10f009f8-f3f4-41d8-8cbe-a0dda899606b')
+    .select();
+
   res.json({
     decodedRoleFromEnvKey: decodedRole,
     authAdminListUsersWorked: !error,
     authAdminError: error?.message ?? null,
+    selectWorked: !selectResult.error,
+    selectError: selectResult.error?.message ?? null,
+    selectErrorCode: selectResult.error?.code ?? null,
+    writeWorked: !writeResult.error,
+    writeError: writeResult.error?.message ?? null,
+    writeErrorCode: writeResult.error?.code ?? null,
   });
 });
 
