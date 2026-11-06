@@ -463,9 +463,15 @@
       return;
     }
     const shown = matches.slice(0, 60);
+    let footer = '';
+    if (matches.length > shown.length) {
+      footer = '<div class="combobox-empty">+' + (matches.length - shown.length) + ' more, keep typing to narrow down</div>';
+    } else if (!q) {
+      footer = '<div class="combobox-empty">' + options.length + ' programme' + (options.length === 1 ? '' : 's') + ', keep typing to narrow down</div>';
+    }
     courseList.innerHTML = shown.map((c, i) =>
       '<div class="combobox-item" data-index="' + i + '">' + c.replace(/</g, '&lt;') + '</div>'
-    ).join('') + (matches.length > shown.length ? '<div class="combobox-empty">+' + (matches.length - shown.length) + ' more, keep typing to narrow down</div>' : '');
+    ).join('') + footer;
     courseList.hidden = false;
   }
 
