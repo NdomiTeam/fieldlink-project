@@ -23,10 +23,13 @@ const PORT = process.env.PORT || 4100;
 // included) with a generic 500.
 app.set('trust proxy', true);
 
-// A browser's Origin header never has a trailing slash, but it's an easy
-// mistake to paste FRONTEND_BASE_URL with one (e.g. copied from the
-// address bar) — strip it so a stray slash doesn't silently break CORS.
-const corsOrigin = process.env.FRONTEND_BASE_URL?.replace(/\/+$/, '') || '*';
+// A browser's Origin header is exactly scheme+host+port: no trailing
+// slash, no surrounding whitespace. Both are easy mistakes when pasting
+// FRONTEND_BASE_URL into a dashboard (trailing slash from the address
+// bar, a stray newline/space from the paste itself) and either one
+// made cors() throw "Invalid character in header content" on every
+// single request, not just cross-origin ones.
+const corsOrigin = process.env.FRONTEND_BASE_URL?.trim().replace(/\/+$/, '') || '*';
 
 app.use(helmet());
 app.use(cors({ origin: corsOrigin }));
@@ -43,8 +46,7 @@ app.use('/api/field-applications', fieldApplicationsRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[UNHANDLED]', err);
-  const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-  res.status(500).json({ success: false, error: 'Something went wrong', code: 'INTERNAL_ERROR', detail });
+  res.status(500).json({ success: false, error: 'Something went wrong', code: 'INTERNAL_ERROR' });
 });
 
 startConfirmationExpiryJob();

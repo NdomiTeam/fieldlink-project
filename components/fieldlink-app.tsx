@@ -353,25 +353,16 @@ function MetricCard({ label, value, note, icon, accent = 'blue', trend }: { labe
 }
 
 function LoginView({ onLogin }: { onLogin: (portal: Portal) => void }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [registrationSubmitted, setRegistrationSubmitted] = useState(false)
 
   const handleSubmit = async () => {
-    if (mode === 'register' && !name.trim()) { setError('Enter your full name to continue.'); return }
     if (!email.includes('@') || password.length < 8) { setError('Enter a valid work email and a password of at least 8 characters.'); return }
     setError('')
     setSubmitting(true)
     try {
-      if (mode === 'register') {
-        await authApi.adminRegister(email, password, name)
-        setRegistrationSubmitted(true)
-        return
-      }
       // No role picker: one account can only ever be a company or an admin,
       // never both, so just try each and go wherever it actually succeeds.
       try {
@@ -395,16 +386,13 @@ function LoginView({ onLogin }: { onLogin: (portal: Portal) => void }) {
     <div className="auth-shell">
       <div className="auth-card">
         <Brand />
-        <p className="eyebrow">{mode === 'login' ? 'WELCOME BACK' : 'JOIN AS AN ADMIN'}</p>
-        <h1>{mode === 'login' ? 'Sign in to Fieldlink' : 'Create your admin account'}</h1>
-        <p className="auth-subtitle">{mode === 'login' ? 'Sign in with your Ndomi company account, or your Fieldlink admin account.' : 'Manage placements and help students find their path.'}</p>
-        {mode === 'register' && <label className="auth-field">Full name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" /></label>}
+        <p className="eyebrow">WELCOME BACK</p>
+        <h1>Sign in to Fieldlink</h1>
+        <p className="auth-subtitle">Sign in with your Ndomi company account, or your Fieldlink admin account.</p>
         <label className="auth-field">Work email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.co.tz" /></label>
         <label className="auth-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" /></label>
         {error && <p className="auth-error" role="alert">{error}</p>}
-        {registrationSubmitted && <p className="auth-notice" role="status">Registration received. An existing admin must approve this account before it can be used.</p>}
-        <Button className="auth-submit" onClick={handleSubmit} disabled={submitting || registrationSubmitted}>{submitting ? 'Please wait…' : registrationSubmitted ? 'Request received' : mode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight data-icon="inline-end" /></Button>
-        <p className="auth-switch">{mode === 'login' ? 'New admin?' : 'Already have an account?'} <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setRegistrationSubmitted(false); setError('') }}>{mode === 'login' ? 'Register as admin' : 'Sign in'}</button></p>
+        <Button className="auth-submit" onClick={handleSubmit} disabled={submitting}>{submitting ? 'Please wait…' : 'Sign in'} <ArrowRight data-icon="inline-end" /></Button>
         <button className="auth-back" onClick={() => onLogin('student')}>← Return to student portal</button>
         <div className="auth-security"><LockKeyhole size={13} /> Partner sign-in</div>
       </div>
