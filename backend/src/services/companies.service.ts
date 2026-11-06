@@ -54,7 +54,7 @@ export async function loginCompany(email: string, password: string): Promise<{ a
   );
   if (upsertErr) {
     console.error('[companies] Failed to upsert company_profiles for', data.user.id, upsertErr);
-    throw new AppError('Failed to link company account', 500, 'INTERNAL_ERROR');
+    throw new AppError(`Failed to link company account: ${upsertErr.message} (code ${upsertErr.code})`, 500, 'INTERNAL_ERROR');
   }
 
   return { accessToken: data.session.access_token, refreshToken: data.session.refresh_token };
