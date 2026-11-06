@@ -106,6 +106,7 @@
   .progress-label { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; color: var(--blue-600); white-space: nowrap; }
 
   .step { display: flex; flex-direction: column; gap: 18px; }
+  .step[hidden] { display: none; }
 
   .panel {
     background: var(--card);
@@ -150,6 +151,13 @@
   input::placeholder, textarea::placeholder { color: var(--placeholder); }
   input:focus, select:focus, textarea:focus { border-color: var(--blue-500); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-500) 20%, transparent); }
   select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%2346527a' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 34px; }
+  input:disabled, select:disabled { background: var(--border); color: var(--placeholder); cursor: not-allowed; }
+
+  .combobox-field { position: relative; }
+  .combobox-list { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; max-height: 230px; overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 28px -12px rgba(20,35,90,.4); }
+  .combobox-item { padding: 10px 13px; font-size: 13px; cursor: pointer; color: var(--ink); }
+  .combobox-item:hover, .combobox-item.active { background: var(--field-bg); }
+  .combobox-empty { padding: 12px 13px; font-size: 12.5px; color: var(--ink-soft); }
 
   .radio-row { display: flex; gap: 12px; flex-wrap: wrap; }
   .radio-pill {
@@ -224,6 +232,7 @@
   .done-icon svg { width: 30px; height: 30px; }
   .done-wrap h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 10px; }
   .done-wrap p { color: var(--ink-soft); font-size: 14px; max-width: 46ch; margin: 0 auto; line-height: 1.6; }
+  .done-wrap .btn-secondary { margin-top: 20px; width: auto; display: inline-flex; align-items: center; justify-content: center; }
 
   @media (max-width: 560px) {
     .field-row { grid-template-columns: 1fr; gap: 0; }
@@ -295,12 +304,15 @@
 
         <div class="field-row">
           <div class="field">
-            <label for="university">University / College Name<span class="req">*</span></label>
-            <input type="text" id="university" placeholder="e.g. University of Dar es Salaam" required />
+            <label for="university">University<span class="req">*</span></label>
+            <select id="university" required>
+              <option value="" disabled selected>Select your university</option>
+            </select>
           </div>
-          <div class="field">
+          <div class="field combobox-field">
             <label for="course">Course / Programme of Study<span class="req">*</span></label>
-            <input type="text" id="course" placeholder="e.g. BSc. Computer Science" required />
+            <input type="text" id="course" autocomplete="off" placeholder="Select your university first" disabled required />
+            <div class="combobox-list" id="courseList" hidden></div>
           </div>
         </div>
 
@@ -405,8 +417,9 @@
         <div class="done-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
         </div>
-        <h2>Application received</h2>
+        <h2 id="doneHeading">Application received</h2>
         <p>Thank you for applying. Our team will review your preferences and start reaching out to your chosen companies in Dar es Salaam and Morogoro on your behalf. We'll contact you on WhatsApp with updates.</p>
+        <button type="button" class="btn-secondary" id="updateInfoBtn">Update your information</button>
       </div>
     </section>
 
@@ -418,8 +431,70 @@
   const SUPABASE_URL = "https://osnnhzugfisdvkeztdzr.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zbm5oenVnZmlzZHZrZXp0ZHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzY0ODYsImV4cCI6MjA5MzExMjQ4Nn0.70gwDicnV1putUtZ57CqsCI7ou4xPhy7jI8opyTy-ac";
 
+  // Real degree programmes per university, sourced from each university's
+  // own current admission prospectus / TCU accredited-programmes register.
+  const UNIVERSITY_COURSES = {"University of Dar es Salaam (UDSM)":["Bachelor of Arts in Political Science and Public Administration","Bachelor of Arts in Sociology","Bachelor of Science in Statistics","Bachelor of Arts with Education","Bachelor of Library and Information Studies","Bachelor of Social Work","Bachelor of Arts in Psychology","Bachelor of Arts in Anthropology","Bachelor of Arts in Urban and Rural Development","Bachelor of Science in Geographical Information Systems and Remote Sensing","Bachelor of Arts in Politics and International Relations","Bachelor of Science in Environmental Assessment and Natural Resource Management","Bachelor of Arts in Archaeology","Bachelor of Arts in Archaeology and History","Bachelor of Arts in Heritage Management","Bachelor of Arts in History and Archives Management","Bachelor of Arts in Language Studies","Bachelor of Arts in Literature","Bachelor of Arts in Philosophy and Ethics","Bachelor of Arts in Art and Design","Bachelor of Arts in Film and Television","Bachelor of Arts in Music","Bachelor of Arts in Theatre Arts","Bachelor of Arts in Archaeology and Geography","Bachelor of Arts with Education (Chinese and English)","Bachelor of Arts in Diplomatic and Defence Studies","Bachelor of Arts in Communication Studies","Bachelor of Arts in History, Cultural Heritage Management and Tourism","Bachelor of Arts in Religious Studies","Bachelor of Arts in Literary and Publishing Studies","Bachelor of Journalism and Media Studies","Bachelor of Arts in Mass Communication and Multimedia Studies","Bachelor of Arts in Public Relations and Strategic Communication","Bachelor of Arts in Kiswahili","Bachelor of Arts in Kiswahili (Tafsiri na Ukalimani)","Bachelor of Arts in Development Studies","Bachelor of Commerce in Accounting","Bachelor of Commerce in Banking and Financial Services","Bachelor of Science in Finance","Bachelor of Commerce in Human Resource Management","Bachelor of Commerce in Marketing","Bachelor of Commerce in Tourism Management","Bachelor of Business Administration (Evening)","Bachelor of Commerce in Procurement and Supply Chain Management","Bachelor of Business Administration in Procurement and Logistics Management (Evening)","Bachelor of Lifelong Learning and Community Development","Bachelor of Commerce with Education","Bachelor of Education in Early Childhood Education","Bachelor of Sport Sciences and Physical Education","Bachelor of Arts in Gender Studies and Community Development","Bachelor of Arts in Law Enforcement","Bachelor of Laws","Bachelor of Arts in Economics","Bachelor of Arts in Economics and Statistics","Bachelor of Science with Education","Bachelor of Arts in Disaster Risk Management","Bachelor of Science in Chemistry","Bachelor of Arts in Historic Archives and Heritage Studies","Bachelor of Science in Data Science and Artificial Intelligence","Bachelor of Science in Environmental Health and Sustainability","Bachelor of Science in Climate Change and Natural Resources Management","Bachelor of Science in Chemical Sciences","Bachelor of Science in Food Biotechnology","Bachelor of Arts in Translation and Interpretation","Bachelor of Arts in Literary Studies and Creative Writing","Bachelor of Science in Chemical and Process Engineering","Bachelor of Science in Electrical Engineering","Bachelor of Science in Textile Engineering","Bachelor of Science in Textile Design and Technology","Bachelor of Science in Mechanical Engineering","Bachelor of Science in Industrial Engineering","Bachelor of Science in Civil Engineering","Bachelor of Architecture","Bachelor of Science in Quantity Surveying","Bachelor of Science in Geomatics","Bachelor of Science in Actuarial Sciences","Bachelor of Science in Zoology","Bachelor of Science in Wildlife Science and Conservation","Bachelor of Science in Petroleum Chemistry","Bachelor of Science in Meteorology","Bachelor of Science in Mathematics and Statistics","Bachelor of Science in Chemistry and Physics","Bachelor of Science in Applied Microbiology and Chemistry","Bachelor of Science in Physics (Medical Physics)","Bachelor of Science in Plant Health and Protection","Bachelor of Science in Agricultural Biotechnology","Bachelor of Science in Plant Conservation and Taxonomy","Bachelor of Science in Industrial Biotechnology","Bachelor of Science in Medical Biotechnology","Bachelor of Science in Computer Science","Bachelor of Science in Computer Engineering and Information Technology","Bachelor of Science in Telecommunications Engineering","Bachelor of Science in Electronics Engineering","Bachelor of Science in Business Information Technology","Bachelor of Science in Food Science and Technology","Bachelor of Science in Bee Science and Technology","Bachelor of Science in Agricultural Engineering and Mechanization","Bachelor of Science in Agricultural and Natural Resources Economics and Business","Bachelor of Science in Crop Science and Technology","Doctor of Medicine","Doctor of Dental Surgery","Bachelor of Science in Marine Sciences","Bachelor of Science in Oceanography","Bachelor of Science in Engineering Geology","Bachelor of Science in Geology","Bachelor of Science with Geology","Bachelor of Science in Geology with Petroleum Resources","Bachelor of Science in Geophysics","Bachelor of Science in Geology with Geothermal Resources Exploration","Bachelor of Science in Mining Engineering","Bachelor of Science in Metallurgy and Mineral Processing Engineering","Bachelor of Science in Petroleum Engineering","Bachelor of Science in Aquatic Environmental Sciences and Conservation","Bachelor of Science in Aquaculture and Technology"],"Mzumbe University":["Bachelor of Accounting and Finance in Public Sector","Bachelor of Accounting and Finance in Business Sector","Bachelor of Laws","Bachelor of Public Administration","Bachelor of Business Administration in Entrepreneurship and Innovation Management","Bachelor of Procurement and Supply Chain Management","Bachelor of Business Administration in Marketing and Communication Management","Bachelor of Health Systems Management","Bachelor of Human Resource Management","Bachelor of Public Administration in Local Government Management","Bachelor of Science in Production and Operations Management","Bachelor of Science in Applied Statistics","Bachelor of Science in Economics - Economic Development and Planning","Bachelor of Science in Economics - Project Planning and Management","Bachelor of Science in Economics - Economic Policy and Planning","Bachelor of Science in Information and Communication Technology with Management","Bachelor of Public Administration in Records, Archives and Information Management","Bachelor of Science in Information Technology and Systems","Bachelor of Science in Information and Communication Technology with Business","Bachelor of Science in Library and Information Management","Bachelor of Science with Education in Mathematics and Computer Science","Bachelor of Science in Industrial Engineering Management","Bachelor of Arts with Education","Bachelor of Public Administration in Youth Development","Bachelor of Health Systems in Monitoring and Evaluation","Bachelor of Environmental Management","Bachelor of Transportation and Logistics Management","Bachelor of Business Administration in Customer Service Management and Public Relations","Bachelor of Procurement and Asset Management","Bachelor of Science in Natural Resources Economics"],"Sokoine University of Agriculture (SUA)":["Bachelor of Arts in Development Planning and Management","Bachelor of Science in Wood Technologies and Value Addition","Bachelor of Agriculture Investment and Banking","Bachelor of Community Development","Bachelor of Crop Production and Management","Bachelor of Information and Records Management","Bachelor of Science in Bee Resources Management","Bachelor of Science in Agricultural Economics and Agribusiness","Bachelor of Science in Agricultural Engineering","Bachelor of Science in Agriculture","Bachelor of Science in Agronomy","Bachelor of Science in Animal Science and Production","Bachelor of Science in Aquaculture","Bachelor of Science in Biotechnology and Laboratory Science","Bachelor of Science in Environmental Sciences and Management","Bachelor of Science in Family and Consumer Studies","Bachelor of Science in Food Science and Technology","Bachelor of Science in Forestry","Bachelor of Science in Horticulture","Bachelor of Science in Human Nutrition","Bachelor of Science in Human Resource and Labour Relations Management","Bachelor of Science in Information Technology","Bachelor of Science in Irrigation and Water Resources Engineering","Bachelor of Science in Wildlife Management","Bachelor of Tourism Management","Bachelor of Veterinary Medicine","Bachelor of Science in Range Management","Bachelor of Rural Development","Bachelor of Science in Applied Agricultural Extension","Bachelor of Science in Bioprocess and Post-Harvest Engineering","Bachelor of Science with Education (Chemistry and Biology)","Bachelor of Science with Education (Chemistry and Physics)","Bachelor of Science with Education (Chemistry and Mathematics)","Bachelor of Science with Education (Physics and Mathematics)","Bachelor of Science with Education (Geography and Mathematics)","Bachelor of Science with Education (Geography and Biology)","Bachelor of Science with Education (Agricultural Science and Biology)"],"Ardhi University (ARU)":["Bachelor of Architecture","Bachelor of Science in Interior Design","Bachelor of Science in Landscape Architecture","Bachelor of Science in Quantity Surveying and Construction Economics","Bachelor of Science in Construction Management","Bachelor of Science in Building Surveying and Construction Maintenance","Bachelor of Science in Urban and Regional Planning","Bachelor of Science in Regional Development Planning","Bachelor of Science in Housing and Infrastructure Planning","Bachelor of Arts in Economics","Bachelor of Arts in Community Development Studies","Bachelor of Science in Land Management and Valuation","Bachelor of Science in Real Estate (Finance and Investment)","Bachelor of Science in Property and Facilities Management","Bachelor of Science in Accounting and Finance","Bachelor of Business Administration","Bachelor of Science in Geomatics","Bachelor of Science in Geographical Information Systems and Remote Sensing","Bachelor of Science in Hydrographic and Oceanographic Sciences","Bachelor of Science in Geospatial Information and Communication Technology","Bachelor of Science in Computer Systems and Networks","Bachelor of Science in Information Systems Management","Bachelor of Science in Data Science and Artificial Intelligence","Bachelor of Science in Civil Engineering","Bachelor of Science in Environmental Engineering","Bachelor of Science in Municipal and Industrial Services Engineering","Bachelor of Science in Hydrology and Water Resources Engineering","Bachelor of Science in Integrated Water and Environmental Resource Engineering","Bachelor of Science in Environmental Science and Management","Bachelor of Science in Environmental Laboratory Science and Technology"],"University of Dodoma (UDOM)":["Doctor of Medicine","Bachelor of Science in Nursing","Bachelor of Science in Clinical Nutrition and Dietetics","Bachelor of Arts in French","Bachelor of Arts in Translation and Interpretation","Bachelor of Science in Environmental Engineering","Bachelor of Science in Environmental Science","Bachelor of Science in Renewable Energy Engineering","Bachelor of Science in Biotechnology and Bioinformatics","Bachelor of Science in Aquaculture and Aquatic Sciences","Bachelor of Science in Mathematics and Statistics","Bachelor of Science in Statistics","Bachelor of Science in Actuarial Statistics","Bachelor of Science in Mathematics","Bachelor of Science in Physics","Bachelor of Science in Chemistry","Bachelor of Science in Biology","Bachelor of Science with Education","Bachelor of Science in Petroleum Engineering","Bachelor of Science in Mining Engineering","Bachelor of Science in Metallurgy and Mineral Processing Engineering","Bachelor of Science in Applied Geology","Bachelor of Science in Geoinformatics","Bachelor of Science in Chemical and Processing Engineering","Bachelor of Arts in International Relations","Bachelor of Arts in Development Studies","Bachelor of Arts in Project Planning, Management and Community Development","Bachelor of Arts in Philosophy and Political Science","Bachelor of Arts in Political Science and Public Administration","Bachelor of Arts in Oriental Languages (Chinese)","Bachelor of Arts in English","Bachelor of Arts with Education","Bachelor of Arts in Journalism and Public Relations","Bachelor of Arts in Fine Arts and Design","Bachelor of Arts in Theatre and Film","Bachelor of Arts in Kiswahili","Bachelor of Arts in Archaeology and Cultural Anthropology","Bachelor of Arts in Cultural Heritage and Tourism","Bachelor of Arts in Environmental Economics and Policy","Bachelor of Arts in History","Bachelor of Arts in Sociology","Bachelor of Education in Adult Education and Community Development","Bachelor of Education in Psychology","Bachelor of Education in Guidance and Counseling","Bachelor of Education in Early Childhood Education","Bachelor of Education in Special Needs","Bachelor of Education in Science","Bachelor of Education in Science with ICT","Bachelor of Education in Administration and Management","Bachelor of Education in Policy Planning and Management","Bachelor of Education in Arts","Bachelor of Commerce in Information Management","Bachelor of Commerce in Procurement and Logistics Management","Bachelor of Commerce in Tourism and Hospitality Management","Bachelor of Commerce in Entrepreneurship","Bachelor of Commerce in Marketing","Bachelor of Commerce in Finance","Bachelor of Commerce in Human Resource Management","Bachelor of Commerce in Accounting","Bachelor of Commerce in International Business","Bachelor of Business Administration","Bachelor of Arts in Economics","Bachelor of Arts in Economics and Statistics","Bachelor of Arts in Economics and Sociology","Bachelor of Environmental Disaster Management","Bachelor of Geography and Environmental Studies","Bachelor of Laws","Bachelor of Science in Information Systems","Bachelor of Science in Computer Engineering","Bachelor of Science in Telecommunications Engineering","Bachelor of Science in Business Information Systems","Bachelor of Science in Computer Science","Bachelor of Science in Software Engineering","Bachelor of Science in Computer Networks and Information Security Engineering","Bachelor of Science in Digital Content and Broadcasting Engineering","Bachelor of Science in Multimedia Technology and Animation","Bachelor of Science in Instructional Design and Information Technology","Bachelor of Science in Cyber Security and Digital Forensics Engineering","Bachelor of Science in Health Information Science"],"Muhimbili University of Health and Allied Sciences (MUHAS)":["Doctor of Medicine (MD)","Doctor of Dental Surgery (DDS)","Bachelor of Pharmacy","Bachelor of Science in Nursing","Bachelor of Science in Midwifery","Bachelor of Science in Nurse Anaesthesia","Bachelor of Science in Physiotherapy","Bachelor of Science in Occupational Therapy","Bachelor of Science in Medical Psychology","Bachelor of Science in Optometry","Bachelor of Science in Audiology and Speech Language Pathology","Bachelor of Science in Diagnostic and Therapeutic Radiography","Bachelor of Medical Laboratory Sciences","Bachelor of Biomedical Engineering","Bachelor of Science in Prosthetics and Orthotics","Bachelor of Science in Dental Laboratory Technology","Bachelor of Science in Environmental Health"],"Nelson Mandela African Institution of Science and Technology (NM-AIST)":["MSc in Biodiversity and Ecosystem Management","PhD in Biodiversity and Ecosystem Management","MSc in Sustainable Agriculture","PhD in Sustainable Agriculture","MSc in Human Nutrition and Dietetics","PhD in Human Nutrition and Dietetics","MSc in Food Science and Biotechnology","PhD in Food Science and Biotechnology","MSc in Health and Biomedical Sciences","PhD in Health and Biomedical Sciences","MSc in Public Health Research","MSc in Molecular Biomedical Engineering","MSc in Industrial Pharmacy and Regulatory Science","MSc in Conservation Management of African Ecosystems","MSc in Mathematical and Computer Science and Engineering","PhD in Mathematical and Computer Science and Engineering","MSc in Information and Communication Systems Engineering","PhD in Information and Communication Systems Engineering","MSc in Embedded and Mobile Systems","MSc in Information Systems and Network Security","MSc in Wireless and Mobile Computing","MSc in Applied Mathematics and Computational Science","PhD in Applied Mathematics and Computational Science","MSc in Data Science and Artificial Intelligence","MSc in Health Physics and Radiation Protection","MSc in Water Supply and Sanitary Engineering","PhD in Water Supply and Sanitary Engineering","MSc in Hydrology and Water Resources Engineering","PhD in Hydrology and Water Resources Engineering","MSc in Environmental Science and Engineering","PhD in Environmental Science and Engineering","MSc in Sustainable Energy Science and Engineering","PhD in Sustainable Energy Science and Engineering","MSc in Materials Science and Engineering","PhD in Materials Science and Engineering","MSc in Nuclear Science and Technology","MSc in Innovation and Entrepreneurship Management","PhD in Innovation and Entrepreneurship Management"],"State University of Zanzibar (SUZA)":["Doctor of Medicine","Doctor of Dental Surgery","Bachelor of Science with Education","Bachelor of Arts with Education","Bachelor of Kiswahili with Education","Bachelor of IT Application and Management","Bachelor of Science in Computer Science","Bachelor Degree in Information Technology with Accounting","Bachelor of Science in Environmental Health","Bachelor of Science in Nursing","Bachelor of Medical Laboratory Science","Bachelor of Science in Agriculture General","Bachelor Degree in Accounting and Finance","Bachelor of Banking and Finance","Bachelor Degree in Procurement and Supply","Bachelor Degree in Economic and Official Statistics","Bachelor of Entrepreneurship and Innovation","Bachelor of Arts in History and Archaeology","Bachelor of Arts in Geography and Environmental Studies","Bachelor of Arts in Tourism Management and Marketing","Bachelor of Arts in Mass Communication"],"St. Augustine University of Tanzania (SAUT)":["Bachelor of Arts in Economics","Bachelor of Business Administration","Bachelor of Science in Procurement and Supply Chain Management","Bachelor of Science in Tourism and Hospitality Management","Bachelor of Arts in Mass Communication","Bachelor of Arts in Public Relations and Marketing","Bachelor of Arts in Sociology","Bachelor of Philosophy with Education","Bachelor of Arts in Philosophy","Bachelor of Arts in Religious Studies","Bachelor of Laws","Bachelor of Arts with Education","Bachelor of Science in Civil Engineering","Bachelor of Science in Electrical Engineering","Bachelor of Philosophy with Political Science","Bachelor of Education in Special Needs","Bachelor of Arts in Geography, Environment and Natural Resources Management","Bachelor of Accounting and Finance","Bachelor of Arts in Education with Religious Studies","Bachelor of Science in Psychology and Counselling","Bachelor of Arts in Theology","Bachelor of Arts in Library, Records and Information Management","Bachelor of Science in Computer Science","Doctor of Medicine","Bachelor of Science with Education","Bachelor of Science in Mathematics and Statistics"],"Open University of Tanzania (OUT)":["Bachelor of Arts in Economics","Bachelor of Arts in English Language and Linguistics","Bachelor of Arts in International Relations","Bachelor of Arts in Journalism","Bachelor of Arts in Kiswahili and Creative Studies","Bachelor of Arts in Mass Communication","Bachelor of Arts in Population and Development","Bachelor of Arts in Public Administration","Bachelor of Arts in Sociology","Bachelor of Community Economic Development","Bachelor of Library Information Management","Bachelor of Natural Resources Assessment and Management","Bachelor of Social Work","Bachelor of Tourism Management","Bachelor of Business Administration in Accounting","Bachelor of Business Administration in Finance","Bachelor of Business Administration in Marketing","Bachelor of Business Administration in Human Resource Management","Bachelor of Business Administration in International Business","Bachelor of Human Resource Management","Bachelor of Procurement and Supply Chain Management","Bachelor of Science with Education","Bachelor of Education in Special Education","Bachelor of Arts with Education","Bachelor of Science in Environmental Studies","Bachelor of Science in Food, Nutrition, and Dietetics","Bachelor of Science in Information and Communication Technology","Bachelor of Science in Data Management","Bachelor of Science in Energy Resources Utilization and Management","Bachelor of Laws"]};
+
+  const universitySelect = document.getElementById('university');
+  for (const uni of Object.keys(UNIVERSITY_COURSES)) {
+    const opt = document.createElement('option');
+    opt.value = uni;
+    opt.textContent = uni;
+    universitySelect.appendChild(opt);
+  }
+
+  const courseInput = document.getElementById('course');
+  const courseList = document.getElementById('courseList');
+  let activeCourseIndex = -1;
+
+  function currentCourseOptions() {
+    return UNIVERSITY_COURSES[universitySelect.value] || [];
+  }
+
+  function renderCourseList(query) {
+    const options = currentCourseOptions();
+    const q = (query || '').trim().toLowerCase();
+    const matches = q ? options.filter((c) => c.toLowerCase().includes(q)) : options;
+    activeCourseIndex = -1;
+    if (!options.length) { courseList.hidden = true; return; }
+    if (!matches.length) {
+      courseList.innerHTML = '<div class="combobox-empty">No matching programme, you can still type your own.</div>';
+      courseList.hidden = false;
+      return;
+    }
+    const shown = matches.slice(0, 60);
+    courseList.innerHTML = shown.map((c, i) =>
+      '<div class="combobox-item" data-index="' + i + '">' + c.replace(/</g, '&lt;') + '</div>'
+    ).join('') + (matches.length > shown.length ? '<div class="combobox-empty">+' + (matches.length - shown.length) + ' more, keep typing to narrow down</div>' : '');
+    courseList.hidden = false;
+  }
+
+  universitySelect.addEventListener('change', function () {
+    courseInput.value = '';
+    courseInput.disabled = !universitySelect.value;
+    courseInput.placeholder = universitySelect.value ? 'Search your course...' : 'Select your university first';
+    courseList.hidden = true;
+  });
+
+  courseInput.addEventListener('input', function () { renderCourseList(courseInput.value); });
+  courseInput.addEventListener('focus', function () { if (!courseInput.disabled) renderCourseList(courseInput.value); });
+  courseList.addEventListener('mousedown', function (e) {
+    const item = e.target.closest('.combobox-item');
+    if (!item || item.dataset.index === undefined) return;
+    e.preventDefault();
+    const q = courseInput.value.trim().toLowerCase();
+    const options = currentCourseOptions();
+    const matches = q ? options.filter((c) => c.toLowerCase().includes(q)) : options;
+    courseInput.value = matches[Number(item.dataset.index)];
+    courseList.hidden = true;
+  });
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.combobox-field')) courseList.hidden = true;
+  });
+
   const steps = ['step1', 'step2', 'step3', 'stepDone'];
   let current = 0;
+  let hasSubmittedBefore = false;
 
   const progressFill = document.getElementById('progressFill');
   const progressLabel = document.getElementById('progressLabel');
@@ -527,26 +602,36 @@
 
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting…';
+    submitBtn.textContent = hasSubmittedBefore ? 'Updating…' : 'Submitting…';
 
     try {
-      const res = await fetch(SUPABASE_URL + '/rest/v1/field_experience_applications', {
+      // Upsert on email: a student reopening "Update your information" and
+      // resubmitting replaces their existing row instead of creating a
+      // duplicate one.
+      const res = await fetch(SUPABASE_URL + '/rest/v1/field_experience_applications?on_conflict=email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-          'Prefer': 'return=minimal',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Submit failed with status ' + res.status);
+      document.getElementById('doneHeading').textContent = hasSubmittedBefore ? 'Information updated' : 'Application received';
+      hasSubmittedBefore = true;
       showStep(3);
     } catch (err) {
       errEl.textContent = 'Something went wrong submitting your application. Please try again.';
+    } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Application';
     }
+  });
+
+  document.getElementById('updateInfoBtn').addEventListener('click', function () {
+    showStep(0);
   });
 
   showStep(0);
