@@ -15,8 +15,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4100;
 
+// A browser's Origin header never has a trailing slash, but it's an easy
+// mistake to paste FRONTEND_BASE_URL with one (e.g. copied from the
+// address bar) — strip it so a stray slash doesn't silently break CORS.
+const corsOrigin = process.env.FRONTEND_BASE_URL?.replace(/\/+$/, '') || '*';
+
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_BASE_URL || '*' }));
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
