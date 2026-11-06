@@ -63,12 +63,14 @@ export async function listApplicationsForStudent(studentId: string) {
   return data ?? [];
 }
 
+/** Companies only see applications that already cleared the admin gate (never pending_admin/rejected_by_admin). */
 export async function listApplicationsForCompany(companyId: string) {
   if (!supabaseAdmin) throw new AppError('Server misconfiguration', 500, 'INTERNAL_ERROR');
   const { data, error } = await supabaseAdmin
     .from('applications')
     .select('*, field_spaces!inner(id, title, company_id), students(name, email, phone, university_name)')
     .eq('field_spaces.company_id', companyId)
+    .not('status', 'in', '(pending_admin,rejected_by_admin)')
     .order('created_at', { ascending: false });
   if (error) throw new AppError('Failed to load applications', 500, 'INTERNAL_ERROR');
   return data ?? [];
