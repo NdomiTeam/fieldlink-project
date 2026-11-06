@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 4100;
 // request instead of rate-limiting it, since it can't tell which hop of
 // X-Forwarded-For to trust - this broke every rate-limited route (login
 // included) with a generic 500.
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // A browser's Origin header never has a trailing slash, but it's an easy
 // mistake to paste FRONTEND_BASE_URL with one (e.g. copied from the
@@ -43,7 +43,8 @@ app.use('/api/field-applications', fieldApplicationsRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[UNHANDLED]', err);
-  res.status(500).json({ success: false, error: 'Something went wrong', code: 'INTERNAL_ERROR' });
+  const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  res.status(500).json({ success: false, error: 'Something went wrong', code: 'INTERNAL_ERROR', detail });
 });
 
 startConfirmationExpiryJob();
