@@ -428,8 +428,13 @@
 
 <script>
 (function () {
-  const SUPABASE_URL = "https://osnnhzugfisdvkeztdzr.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zbm5oenVnZmlzZHZrZXp0ZHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MzY0ODYsImV4cCI6MjA5MzExMjQ4Nn0.70gwDicnV1putUtZ57CqsCI7ou4xPhy7jI8opyTy-ac";
+  // Submissions go through our own backend (service role), not a direct
+  // client -> Supabase anon-key write: Postgres RLS needs SELECT
+  // visibility on the conflicting row for ON CONFLICT DO UPDATE to work,
+  // and a public SELECT policy would let anyone holding the public anon
+  // key (visible right in this page's own source) read every student's
+  // name, email and phone directly.
+  const BACKEND_URL = "https://fieldlink-project-production.up.railway.app";
 
   // Real degree programmes per university, sourced from each university's
   // own current admission prospectus / TCU accredited-programmes register.
@@ -611,17 +616,12 @@
     submitBtn.textContent = hasSubmittedBefore ? 'Updating…' : 'Submitting…';
 
     try {
-      // Upsert on email: a student reopening "Update your information" and
-      // resubmitting replaces their existing row instead of creating a
-      // duplicate one.
-      const res = await fetch(SUPABASE_URL + '/rest/v1/field_experience_applications?on_conflict=email', {
+      // Upserts on email server-side: a student reopening "Update your
+      // information" and resubmitting replaces their existing row
+      // instead of creating a duplicate one.
+      const res = await fetch(BACKEND_URL + '/api/field-applications/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-          'Prefer': 'resolution=merge-duplicates,return=minimal',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Submit failed with status ' + res.status);
