@@ -65,6 +65,7 @@
     <div class="toolbar">
       <input type="search" id="searchBox" placeholder="Search by name, email, university, company..." />
       <button class="btn" id="exportBtn">Export CSV</button>
+      <button class="btn" id="exportCompaniesBtn">Export Companies</button>
       <button class="btn" id="refreshBtn">Refresh</button>
       <button class="btn" id="lockBtn">Lock</button>
     </div>
@@ -155,13 +156,60 @@
     countLabel.textContent = filtered.length + ' of ' + allRows.length + ' application(s)';
   }
 
+  function csvCell(v) {
+    return '"' + (v ?? '').toString().replace(/"/g, '""') + '"';
+  }
+
   function toCsv(rows) {
     const headers = ['created_at','full_name','email','phone','gender','university','course','registration_number','academic_level','year_of_study','preferred_location','company_choice_1','company_choice_2','company_choice_3','reason'];
     const lines = [headers.join(',')];
     for (const r of rows) {
-      lines.push(headers.map((h) => '"' + (r[h] ?? '').toString().replace(/"/g, '""') + '"').join(','));
+      lines.push(headers.map((h) => csvCell(r[h])).join(','));
     }
     return lines.join('\n');
+  }
+
+  // One row per company a student named (any of their 3 choices), so
+  // staff can see every company that needs contacting and exactly which
+  // students asked for it, without re-reading the whole applicant table.
+  function buildCompaniesCsv(rows) {
+    const byCompany = new Map(); // lowercased name -> { name, students: [...] }
+    for (const r of rows) {
+      const choices = [r.company_choice_1, r.company_choice_2, r.company_choice_3];
+      for (const raw of choices) {
+        const name = (raw || '').trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (!byCompany.has(key)) byCompany.set(key, { name, students: [] });
+        byCompany.get(key).students.push({
+          name: r.full_name,
+          phone: r.phone,
+          email: r.email,
+          location: r.preferred_location,
+        });
+      }
+    }
+    const companies = [...byCompany.values()].sort((a, b) => b.students.length - a.students.length || a.name.localeCompare(b.name));
+    const headers = ['company', 'student_count', 'locations', 'students'];
+    const lines = [headers.join(',')];
+    for (const c of companies) {
+      const locations = [...new Set(c.students.map((s) => s.location).filter(Boolean))].join(' / ');
+      const students = c.students.map((s) => s.name + ' (' + s.phone + ', ' + s.email + ')').join('; ');
+      lines.push([csvCell(c.name), csvCell(c.students.length), csvCell(locations), csvCell(students)].join(','));
+    }
+    return lines.join('\n');
+  }
+
+  function downloadCsv(filename, content) {
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function loadData(passcode) {
@@ -225,15 +273,12 @@
   searchBox.addEventListener('input', applyFilter);
 
   exportBtn.addEventListener('click', () => {
-    const blob = new Blob([toCsv(allRows)], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'field-experience-applications.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadCsv('field-experience-applications.csv', toCsv(allRows));
+  });
+
+  const exportCompaniesBtn = document.getElementById('exportCompaniesBtn');
+  exportCompaniesBtn.addEventListener('click', () => {
+    downloadCsv('field-experience-companies.csv', buildCompaniesCsv(allRows));
   });
 
   // Auto-unlock if a passcode is already remembered on this device.
