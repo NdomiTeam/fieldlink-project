@@ -1,5 +1,13 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import WebSocket from 'ws';
+
+// Node 20 has no native WebSocket global; supabase-js's Realtime client
+// requires one even though this backend never uses realtime features at
+// all. Providing `ws` here satisfies the constructor so createClient()
+// doesn't throw on startup.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const realtimeOptions: { transport: any } = { transport: WebSocket };
 
 dotenv.config();
 
@@ -30,6 +38,7 @@ const FIELDLINK_SCHEMA = 'fieldlink';
  */
 export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   db: { schema: FIELDLINK_SCHEMA },
+  realtime: realtimeOptions,
   auth: {
     persistSession: false,
     autoRefreshToken: false,
@@ -45,6 +54,7 @@ export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
 export const supabaseAdmin = supabaseServiceRoleKey
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
       db: { schema: FIELDLINK_SCHEMA },
+      realtime: realtimeOptions,
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -64,6 +74,7 @@ export function createUserClient(accessToken: string): SupabaseClient<any, 'fiel
 
   return createClient(supabaseUrl, supabaseAnonKey, {
     db: { schema: FIELDLINK_SCHEMA },
+    realtime: realtimeOptions,
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`,
