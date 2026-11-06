@@ -362,15 +362,17 @@ function LoginView({ onLogin, initialRole }: { onLogin: (portal: Portal) => void
   const [submitting, setSubmitting] = useState(false)
   const [registrationSubmitted, setRegistrationSubmitted] = useState(false)
 
+  const canRegister = role === 'admin'
+  const effectiveMode = canRegister ? mode : 'login'
+
   const handleSubmit = async () => {
-    if (mode === 'register' && role === 'admin' && !name.trim()) { setError('Enter your full name to continue.'); return }
+    if (effectiveMode === 'register' && !name.trim()) { setError('Enter your full name to continue.'); return }
     if (!email.includes('@') || password.length < 8) { setError('Enter a valid work email and a password of at least 8 characters.'); return }
     setError('')
     setSubmitting(true)
     try {
-      if (mode === 'register') {
-        if (role === 'company') await authApi.companyRegister(email, password)
-        else await authApi.adminRegister(email, password, name)
+      if (effectiveMode === 'register') {
+        await authApi.adminRegister(email, password, name)
         setRegistrationSubmitted(true)
         return
       }
@@ -384,7 +386,35 @@ function LoginView({ onLogin, initialRole }: { onLogin: (portal: Portal) => void
     }
   }
 
-  return <div className="auth-shell"><div className="auth-card"><Brand /><p className="eyebrow">{mode === 'login' ? 'WELCOME BACK' : 'JOIN OUR PARTNER NETWORK'}</p><h1>{mode === 'login' ? 'Sign in to Fieldlink' : 'Create your partner account'}</h1><p className="auth-subtitle">{mode === 'login' ? 'Manage placements and help students find their path.' : 'Connect with talented students across Tanzania.'}</p><div className="auth-role-toggle" role="group" aria-label="Choose account type"><button className={role === 'company' ? 'active' : ''} onClick={() => setRole('company')}><Building2 size={15} /> Company</button><button className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}><ShieldCheck size={15} /> Admin</button></div>{mode === 'register' && role === 'admin' && <label className="auth-field">Full name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" /></label>}{mode === 'register' && role === 'company' && <p className="auth-notice">Company registration is checked against an approved company on Ndomi by this email, no separate approval needed.</p>}<label className="auth-field">Work email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.co.tz" /></label><label className="auth-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" /></label>{error && <p className="auth-error" role="alert">{error}</p>}{registrationSubmitted && <p className="auth-notice" role="status">{role === 'admin' ? 'Registration received. An existing admin must approve this account before it can be used.' : 'Account created. You can sign in now.'}</p>}<Button className="auth-submit" onClick={handleSubmit} disabled={submitting || registrationSubmitted}>{submitting ? 'Please wait…' : registrationSubmitted ? 'Request received' : mode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight data-icon="inline-end" /></Button><p className="auth-switch">{mode === 'login' ? 'New to Fieldlink?' : 'Already have an account?'} <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setRegistrationSubmitted(false); setError('') }}>{mode === 'login' ? 'Register your company' : 'Sign in'}</button></p><button className="auth-back" onClick={() => onLogin('student')}>← Return to student portal</button><div className="auth-security"><LockKeyhole size={13} /> Partner sign-in</div></div><div className="auth-side-note"><span>FIELDLINK PARTNER NETWORK</span><h2>Good work deserves<br />good people.</h2><p>Find the right student talent, support their growth, and build a stronger future for Tanzania.</p></div></div>
+  return (
+    <div className="auth-shell">
+      <div className="auth-card">
+        <Brand />
+        <p className="eyebrow">{effectiveMode === 'login' ? 'WELCOME BACK' : 'JOIN AS AN ADMIN'}</p>
+        <h1>{effectiveMode === 'login' ? 'Sign in to Fieldlink' : 'Create your admin account'}</h1>
+        <p className="auth-subtitle">{role === 'company' ? 'Use the same email and password you use for your Ndomi company account.' : 'Manage placements and help students find their path.'}</p>
+        <div className="auth-role-toggle" role="group" aria-label="Choose account type">
+          <button className={role === 'company' ? 'active' : ''} onClick={() => { setRole('company'); setMode('login'); setRegistrationSubmitted(false); setError('') }}><Building2 size={15} /> Company</button>
+          <button className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}><ShieldCheck size={15} /> Admin</button>
+        </div>
+        {role === 'company' && <p className="auth-notice">Companies don’t register separately here, your Ndomi login works directly.</p>}
+        {effectiveMode === 'register' && <label className="auth-field">Full name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" /></label>}
+        <label className="auth-field">Work email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.co.tz" /></label>
+        <label className="auth-field">Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" /></label>
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        {registrationSubmitted && <p className="auth-notice" role="status">Registration received. An existing admin must approve this account before it can be used.</p>}
+        <Button className="auth-submit" onClick={handleSubmit} disabled={submitting || registrationSubmitted}>{submitting ? 'Please wait…' : registrationSubmitted ? 'Request received' : effectiveMode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight data-icon="inline-end" /></Button>
+        {canRegister && <p className="auth-switch">{effectiveMode === 'login' ? 'New admin?' : 'Already have an account?'} <button onClick={() => { setMode(effectiveMode === 'login' ? 'register' : 'login'); setRegistrationSubmitted(false); setError('') }}>{effectiveMode === 'login' ? 'Register as admin' : 'Sign in'}</button></p>}
+        <button className="auth-back" onClick={() => onLogin('student')}>← Return to student portal</button>
+        <div className="auth-security"><LockKeyhole size={13} /> Partner sign-in</div>
+      </div>
+      <div className="auth-side-note">
+        <span>FIELDLINK PARTNER NETWORK</span>
+        <h2>Good work deserves<br />good people.</h2>
+        <p>Find the right student talent, support their growth, and build a stronger future for Tanzania.</p>
+      </div>
+    </div>
+  )
 }
 
 function handleMobileNavigation(currentPortal: Portal, destination: Portal, index: number, navigate: (portal: Portal) => void, signOut: () => void) {

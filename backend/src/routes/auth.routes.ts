@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { registerCompany, loginCompany } from '../services/companies.service.js';
+import { loginCompany } from '../services/companies.service.js';
 import { registerAdmin, loginAdmin, approveAdmin, listPendingAdmins } from '../services/admins.service.js';
 import { requireAdmin } from '../middleware/auth.middleware.js';
 import { handleError } from '../utils/errors.js';
@@ -9,17 +9,7 @@ const router = Router();
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 
-router.post('/company/register', authLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body ?? {};
-    const result = await registerCompany(String(email ?? ''), String(password ?? ''));
-    res.status(201).json({ success: true, data: result });
-  } catch (error) {
-    const e = handleError(error);
-    res.status(e.statusCode).json({ success: false, error: e.message, code: e.code });
-  }
-});
-
+/** No separate FieldLink signup: a company logs in with its existing Ndomi email/password. */
 router.post('/company/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body ?? {};

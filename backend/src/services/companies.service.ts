@@ -1,67 +1,50 @@
-import { supabaseAdmin } from '../config/supabase.js';
-import { lookupApprovedCompanyByEmail, NdomiCompanyNotFoundError } from './ndomi-client.service.js';
-import { AppError, AuthenticationError, ValidationError } from '../utils/errors.js';
+import { supabaseAdmin, ndomiPublicSchema } from '../config/supabase.js';
+import { AppError, AuthenticationError } from '../utils/errors.js';
 
-export async function registerCompany(email: string, password: string): Promise<{ id: string; name: string }> {
-  if (!supabaseAdmin) throw new AppError('Server misconfiguration', 500, 'INTERNAL_ERROR');
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!normalizedEmail || !password || password.length < 8) {
-    throw new ValidationError('A valid email and a password of at least 8 characters are required');
-  }
-
-  let ndomiCompany;
-  try {
-    ndomiCompany = await lookupApprovedCompanyByEmail(normalizedEmail);
-  } catch (err) {
-    if (err instanceof NdomiCompanyNotFoundError) {
-      throw new ValidationError('This email is not registered to an approved company on Ndomi');
-    }
-    throw err;
-  }
-
-  const { data: existing } = await supabaseAdmin
-    .from('company_profiles')
-    .select('id')
-    .eq('ndomi_company_id', ndomiCompany.company_id)
-    .maybeSingle();
-  if (existing) throw new ValidationError('This company already has a FieldLink account');
-
-  const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-    email: normalizedEmail,
-    password,
-    email_confirm: true,
-  });
-  if (authErr || !authUser?.user) {
-    throw new AppError(authErr?.message || 'Failed to create account', 400, 'SIGNUP_FAILED');
-  }
-
-  const { error: profileErr } = await supabaseAdmin.from('company_profiles').insert({
-    id: authUser.user.id,
-    ndomi_company_id: ndomiCompany.company_id,
-    name: ndomiCompany.company_name,
-    logo_url: ndomiCompany.company_logo_url,
-    email: normalizedEmail,
-    phone: ndomiCompany.company_phone,
-  });
-  if (profileErr) {
-    await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-    throw new AppError('Failed to finish registration', 500, 'INTERNAL_ERROR');
-  }
-
-  return { id: authUser.user.id, name: ndomiCompany.company_name };
-}
-
+/**
+ * A company logs into FieldLink with the EXACT SAME email/password it
+ * already uses for its Ndomi account — there is no separate FieldLink
+ * signup. This only works because FieldLink shares Ndomi's own Supabase
+ * project (forced by a billing hold on creating a new one), so
+ * signInWithPassword here authenticates against the very same
+ * auth.users row Ndomi itself uses.
+ *
+ * On a successful login, (re)link/refresh the local company_profiles
+ * mirror from Ndomi's own `companies`/`profiles` tables directly (same
+ * database, no network round-trip needed) so the rest of FieldLink has
+ * something to query without touching Ndomi's schema on every request.
+ */
 export async function loginCompany(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
-  if (!supabaseAdmin) throw new AppError('Server misconfiguration', 500, 'INTERNAL_ERROR');
+  if (!supabaseAdmin || !ndomiPublicSchema) throw new AppError('Server misconfiguration', 500, 'INTERNAL_ERROR');
+
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error || !data?.session) throw new AuthenticationError('Incorrect email or password');
 
-  const { data: profile } = await supabaseAdmin
-    .from('company_profiles')
-    .select('id')
-    .eq('id', data.user.id)
+  const { data: company, error: companyErr } = await ndomiPublicSchema
+    .from('companies')
+    .select('id, name, logo_url, email, phone, verification_status')
+    .eq('owner_id', data.user.id)
     .maybeSingle();
-  if (!profile) throw new AuthenticationError('This account is not a company account');
+  if (companyErr || !company) {
+    throw new AuthenticationError('This Ndomi account is not linked to a company');
+  }
+  if (company.verification_status !== 'Approved') {
+    throw new AuthenticationError('Your company is not yet approved on Ndomi');
+  }
+
+  const { error: upsertErr } = await supabaseAdmin.from('company_profiles').upsert(
+    {
+      id: data.user.id,
+      ndomi_company_id: company.id,
+      name: company.name,
+      logo_url: company.logo_url,
+      email: company.email || data.user.email,
+      phone: company.phone,
+      is_approved: true,
+    },
+    { onConflict: 'id' },
+  );
+  if (upsertErr) throw new AppError('Failed to link company account', 500, 'INTERNAL_ERROR');
 
   return { accessToken: data.session.access_token, refreshToken: data.session.refresh_token };
 }

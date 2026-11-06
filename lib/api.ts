@@ -123,8 +123,8 @@ export type CompanyApplicant = {
 }
 
 export const authApi = {
-  companyRegister: (email: string, password: string) =>
-    request<{ id: string; name: string }>('/api/auth/company/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  // Companies have no separate FieldLink signup: they log in with the
+  // exact email/password they already use for their Ndomi account.
   companyLogin: (email: string, password: string) =>
     request<{ accessToken: string; refreshToken: string }>('/api/auth/company/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   adminRegister: (email: string, password: string, name: string) =>

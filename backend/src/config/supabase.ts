@@ -63,6 +63,25 @@ export const supabaseAdmin = supabaseServiceRoleKey
   : null;
 
 /**
+ * Reads Ndomi's OWN tables directly (companies, profiles) — safe because
+ * this is genuinely the same Postgres database/project, not a separate
+ * system reached over the network. Used so a company can log into
+ * FieldLink with the exact same email/password they already use for
+ * their Ndomi account, instead of a brand-new FieldLink-only signup.
+ * Read-only by convention: never write into Ndomi's own schema from here.
+ */
+export const ndomiPublicSchema = supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      db: { schema: 'public' },
+      realtime: realtimeOptions,
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  : null;
+
+/**
  * Create a Supabase client scoped to a company/admin's own session token
  * (Supabase Auth, this project) — used so RLS policies on companies/admins
  * apply normally for their own portal reads/writes.
