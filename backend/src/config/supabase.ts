@@ -82,6 +82,32 @@ export const ndomiPublicSchema = supabaseServiceRoleKey
   : null;
 
 /**
+ * A fresh, throwaway client for one signInWithPassword call.
+ *
+ * IMPORTANT: never call .auth.signInWithPassword() on the shared
+ * `supabaseAdmin`/`supabaseClient` singletons above — despite
+ * persistSession:false, signing in still sets that client INSTANCE's
+ * in-memory session, and every later `.from()` call on that same
+ * instance (from any concurrent request, since it's a module-level
+ * singleton) then goes out as that end user, not as service_role. That
+ * was a real bug here: a company login's own signIn silently downgraded
+ * the shared admin client, so the company_profiles upsert right after
+ * it got rejected by RLS as if it were an ordinary authenticated user.
+ */
+export function createAuthOnlyClient(): SupabaseClient {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing required Supabase environment variables');
+  }
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    realtime: realtimeOptions,
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+/**
  * Create a Supabase client scoped to a company/admin's own session token
  * (Supabase Auth, this project) — used so RLS policies on companies/admins
  * apply normally for their own portal reads/writes.

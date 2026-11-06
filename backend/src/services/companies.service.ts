@@ -1,4 +1,4 @@
-import { supabaseAdmin, ndomiPublicSchema } from '../config/supabase.js';
+import { supabaseAdmin, ndomiPublicSchema, createAuthOnlyClient } from '../config/supabase.js';
 import { AppError, AuthenticationError } from '../utils/errors.js';
 
 /**
@@ -17,7 +17,7 @@ import { AppError, AuthenticationError } from '../utils/errors.js';
 export async function loginCompany(email: string, password: string): Promise<{ accessToken: string; refreshToken: string }> {
   if (!supabaseAdmin || !ndomiPublicSchema) throw new AppError('Server misconfiguration', 500, 'INTERNAL_ERROR');
 
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+  const { data, error } = await createAuthOnlyClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error || !data?.session) throw new AuthenticationError('Incorrect email or password');
 
   // .maybeSingle() would error out instead of picking one when an owner_id
@@ -54,7 +54,7 @@ export async function loginCompany(email: string, password: string): Promise<{ a
   );
   if (upsertErr) {
     console.error('[companies] Failed to upsert company_profiles for', data.user.id, upsertErr);
-    throw new AppError(`Failed to link company account: ${upsertErr.message} (code ${upsertErr.code})`, 500, 'INTERNAL_ERROR');
+    throw new AppError('Failed to link company account', 500, 'INTERNAL_ERROR');
   }
 
   return { accessToken: data.session.access_token, refreshToken: data.session.refresh_token };

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../config/supabase.js';
+import { supabaseAdmin, createAuthOnlyClient } from '../config/supabase.js';
 import { AppError, AuthenticationError, AuthorizationError, ValidationError } from '../utils/errors.js';
 
 /** Creates an admin row that stays unusable (is_approved = false) until an existing admin approves it. */
@@ -34,7 +34,7 @@ export async function registerAdmin(email: string, password: string, name: strin
 
 export async function loginAdmin(email: string, password: string): Promise<{ accessToken: string; refreshToken: string; isApproved: boolean }> {
   if (!supabaseAdmin) throw new AppError('Server misconfiguration', 500, 'INTERNAL_ERROR');
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+  const { data, error } = await createAuthOnlyClient().auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error || !data?.session) throw new AuthenticationError('Incorrect email or password');
 
   const { data: profile } = await supabaseAdmin
