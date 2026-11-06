@@ -20,14 +20,22 @@ export async function loginCompany(email: string, password: string): Promise<{ a
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   if (error || !data?.session) throw new AuthenticationError('Incorrect email or password');
 
-  const { data: company, error: companyErr } = await ndomiPublicSchema
+  // .maybeSingle() would error out instead of picking one when an owner_id
+  // has more than one company row (this happens for admin-seeded listings
+  // sharing one owner) — fetch as a list and choose instead.
+  const { data: companies, error: companyErr } = await ndomiPublicSchema
     .from('companies')
-    .select('id, name, logo_url, email, phone, verification_status')
+    .select('id, name, logo_url, email, phone, verification_status, created_at')
     .eq('owner_id', data.user.id)
-    .maybeSingle();
-  if (companyErr || !company) {
+    .order('created_at', { ascending: false });
+  if (companyErr) {
+    console.error('[companies] Failed to look up Ndomi company for owner_id', data.user.id, companyErr);
+    throw new AppError('Failed to verify your company account', 500, 'INTERNAL_ERROR');
+  }
+  if (!companies || companies.length === 0) {
     throw new AuthenticationError('This Ndomi account is not linked to a company');
   }
+  const company = companies.find((c) => c.verification_status === 'Approved') ?? companies[0];
   if (company.verification_status !== 'Approved') {
     throw new AuthenticationError('Your company is not yet approved on Ndomi');
   }
@@ -44,7 +52,10 @@ export async function loginCompany(email: string, password: string): Promise<{ a
     },
     { onConflict: 'id' },
   );
-  if (upsertErr) throw new AppError('Failed to link company account', 500, 'INTERNAL_ERROR');
+  if (upsertErr) {
+    console.error('[companies] Failed to upsert company_profiles for', data.user.id, upsertErr);
+    throw new AppError(`Failed to link company account: ${upsertErr.message}`, 500, 'INTERNAL_ERROR');
+  }
 
   return { accessToken: data.session.access_token, refreshToken: data.session.refresh_token };
 }
