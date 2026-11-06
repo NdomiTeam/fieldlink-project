@@ -7,7 +7,7 @@ import crypto from 'crypto';
 
 const NDOMI_BASE_URL = process.env.NDOMI_BASE_URL || 'https://ndomi.app';
 const NDOMI_WEBHOOK_PATH = process.env.NDOMI_WEBHOOK_PATH || '/api/field/webhook';
-const NDOMI_WEBHOOK_SECRET = process.env.NDOMI_WEBHOOK_SECRET;
+const NDOMI_WEBHOOK_SECRET = process.env.FIELDLINK_WEBHOOK_SECRET;
 
 export interface ApplicationStatusChangedEvent {
   event: 'application.status_changed';
@@ -24,7 +24,7 @@ export async function sendApplicationStatusChanged(params: {
   status: string;
 }): Promise<void> {
   if (!NDOMI_WEBHOOK_SECRET) {
-    console.warn('[webhook-out] NDOMI_WEBHOOK_SECRET not set, skipping webhook send');
+    console.warn('[webhook-out] FIELDLINK_WEBHOOK_SECRET not set, skipping webhook send');
     return;
   }
 

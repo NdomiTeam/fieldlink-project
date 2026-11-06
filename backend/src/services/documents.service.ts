@@ -2,7 +2,7 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { AppError, AuthorizationError, ValidationError } from '../utils/errors.js';
 import { MANDATORY_DOCUMENT_TYPES, isValidDocumentType } from '../data/document-types.js';
 
-const BUCKET = 'application-documents';
+const BUCKET = 'fieldlink-documents';
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME = new Set(['application/pdf', 'image/png', 'image/jpeg']);
 
