@@ -27,6 +27,32 @@
   .gate button { width: 100%; border: 0; border-radius: 999px; padding: 13px; background: linear-gradient(135deg, var(--blue-600), var(--blue-500)); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 14px; cursor: pointer; }
   .gate .err { color: #e0524a; font-size: 12px; min-height: 16px; margin-top: 8px; }
 
+  .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 17px; }
+  .stat-card .stat-label { display: flex; align-items: center; gap: 7px; color: var(--ink-soft); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  .stat-card .stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 800; color: var(--ink); margin-top: 8px; line-height: 1; }
+  .stat-card .stat-sub { color: var(--placeholder); font-size: 11px; margin-top: 6px; }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue-500); flex: none; }
+
+  .section-title { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+  .section-title h2 { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--ink); margin: 0; }
+  .section-title span { color: var(--ink-soft); font-size: 11.5px; }
+
+  .company-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .company-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; cursor: pointer; transition: border-color .15s; }
+  .company-card:hover { border-color: var(--blue-500); }
+  .company-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .company-card-name { font-weight: 700; font-size: 13px; color: var(--ink); line-height: 1.3; }
+  .company-card-count { flex: none; background: linear-gradient(135deg, var(--blue-600), var(--blue-500)); color: #fff; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 9px; }
+  .company-card-locations { margin-top: 8px; color: var(--ink-soft); font-size: 11px; }
+  .company-card-export { margin-top: 10px; border: 1px solid var(--border); background: var(--field-bg); color: var(--ink-soft); border-radius: 7px; padding: 5px 10px; font-size: 10.5px; font-weight: 600; cursor: pointer; }
+  .company-card-export:hover { border-color: var(--blue-500); color: var(--blue-600); }
+  .company-empty { grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--ink-soft); font-size: 12.5px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+
+  @media (max-width: 700px) {
+    .stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+
   .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .toolbar input[type="search"] { flex: 1; min-width: 200px; border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 10px 13px; font-size: 13px; outline: none; }
   .toolbar input[type="search"]:focus { border-color: var(--blue-500); }
@@ -62,6 +88,14 @@
     <span class="count" id="countLabel"></span>
   </div>
   <main>
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="section-title">
+      <h2>Companies requested</h2>
+      <span>Click a company to filter the table below, or export just its students</span>
+    </div>
+    <div class="company-grid" id="companyGrid"></div>
+
     <div class="toolbar">
       <input type="search" id="searchBox" placeholder="Search by name, email, university, company..." />
       <button class="btn" id="exportBtn">Export CSV</button>
@@ -104,6 +138,8 @@
   const loadingState = document.getElementById('loadingState');
   const emptyState = document.getElementById('emptyState');
   const countLabel = document.getElementById('countLabel');
+  const statsGrid = document.getElementById('statsGrid');
+  const companyGrid = document.getElementById('companyGrid');
 
   let allRows = [];
 
@@ -169,35 +205,85 @@
     return lines.join('\n');
   }
 
-  // One row per company a student named (any of their 3 choices), so
-  // staff can see every company that needs contacting and exactly which
+  // Groups by every company a student named (any of their 3 choices), so
+  // staff can see each company that needs contacting and exactly which
   // students asked for it, without re-reading the whole applicant table.
-  function buildCompaniesCsv(rows) {
-    const byCompany = new Map(); // lowercased name -> { name, students: [...] }
+  // Returns full row objects per company (not just name/phone) so a
+  // per-company export can reuse the same columns as the main CSV.
+  function groupByCompany(rows) {
+    const byCompany = new Map(); // lowercased name -> { name, rows: [...] }
     for (const r of rows) {
       const choices = [r.company_choice_1, r.company_choice_2, r.company_choice_3];
       for (const raw of choices) {
         const name = (raw || '').trim();
         if (!name) continue;
         const key = name.toLowerCase();
-        if (!byCompany.has(key)) byCompany.set(key, { name, students: [] });
-        byCompany.get(key).students.push({
-          name: r.full_name,
-          phone: r.phone,
-          email: r.email,
-          location: r.preferred_location,
-        });
+        if (!byCompany.has(key)) byCompany.set(key, { name, rows: [] });
+        byCompany.get(key).rows.push(r);
       }
     }
-    const companies = [...byCompany.values()].sort((a, b) => b.students.length - a.students.length || a.name.localeCompare(b.name));
-    const headers = ['company', 'student_count', 'locations', 'students'];
+    return [...byCompany.values()].sort((a, b) => b.rows.length - a.rows.length || a.name.localeCompare(b.name));
+  }
+
+  // Companies only, no student names/contacts mixed in - that detail is
+  // what each company card's own "Export students" button is for.
+  function buildCompaniesCsv(rows) {
+    const headers = ['company', 'student_count', 'dar_es_salaam', 'morogoro'];
     const lines = [headers.join(',')];
-    for (const c of companies) {
-      const locations = [...new Set(c.students.map((s) => s.location).filter(Boolean))].join(' / ');
-      const students = c.students.map((s) => s.name + ' (' + s.phone + ', ' + s.email + ')').join('; ');
-      lines.push([csvCell(c.name), csvCell(c.students.length), csvCell(locations), csvCell(students)].join(','));
+    for (const c of groupByCompany(rows)) {
+      const dar = c.rows.filter((r) => r.preferred_location === 'Dar es Salaam').length;
+      const morogoro = c.rows.filter((r) => r.preferred_location === 'Morogoro').length;
+      lines.push([csvCell(c.name), csvCell(c.rows.length), csvCell(dar), csvCell(morogoro)].join(','));
     }
     return lines.join('\n');
+  }
+
+  function safeFilename(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  function renderStats(rows) {
+    const dar = rows.filter((r) => r.preferred_location === 'Dar es Salaam').length;
+    const morogoro = rows.filter((r) => r.preferred_location === 'Morogoro').length;
+    const companyCount = groupByCompany(rows).length;
+    const stats = [
+      { label: 'Total applications', value: rows.length, sub: 'All submissions' },
+      { label: 'Want Dar es Salaam', value: dar, sub: rows.length ? Math.round((dar / rows.length) * 100) + '% of applicants' : '—' },
+      { label: 'Want Morogoro', value: morogoro, sub: rows.length ? Math.round((morogoro / rows.length) * 100) + '% of applicants' : '—' },
+      { label: 'Companies requested', value: companyCount, sub: 'Unique companies named' },
+    ];
+    statsGrid.innerHTML = stats.map((s) => `
+      <div class="stat-card">
+        <div class="stat-label"><span class="stat-dot"></span>${esc(s.label)}</div>
+        <div class="stat-value">${s.value}</div>
+        <div class="stat-sub">${esc(s.sub)}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderCompanyCards(rows) {
+    const companies = groupByCompany(rows);
+    if (!companies.length) {
+      companyGrid.innerHTML = '<div class="company-empty">No companies named yet.</div>';
+      return;
+    }
+    companyGrid.innerHTML = companies.map((c) => {
+      const dar = c.rows.filter((r) => r.preferred_location === 'Dar es Salaam').length;
+      const morogoro = c.rows.filter((r) => r.preferred_location === 'Morogoro').length;
+      const parts = [];
+      if (dar) parts.push(dar + ' Dar es Salaam');
+      if (morogoro) parts.push(morogoro + ' Morogoro');
+      return `
+        <div class="company-card" data-company="${esc(c.name)}">
+          <div class="company-card-top">
+            <div class="company-card-name">${esc(c.name)}</div>
+            <span class="company-card-count">${c.rows.length}</span>
+          </div>
+          <div class="company-card-locations">${esc(parts.join(' · ') || '—')}</div>
+          <button type="button" class="company-card-export" data-company-export="${esc(c.name)}">Export students</button>
+        </div>
+      `;
+    }).join('');
   }
 
   function downloadCsv(filename, content) {
@@ -225,6 +311,8 @@
         throw new Error((json && json.error) || ('Request failed (' + res.status + ')'));
       }
       allRows = json.data || [];
+      renderStats(allRows);
+      renderCompanyCards(allRows);
       applyFilter();
       return true;
     } catch (err) {
@@ -279,6 +367,21 @@
   const exportCompaniesBtn = document.getElementById('exportCompaniesBtn');
   exportCompaniesBtn.addEventListener('click', () => {
     downloadCsv('field-experience-companies.csv', buildCompaniesCsv(allRows));
+  });
+
+  companyGrid.addEventListener('click', (e) => {
+    const exportBtnEl = e.target.closest('[data-company-export]');
+    if (exportBtnEl) {
+      const company = exportBtnEl.dataset.companyExport;
+      const match = groupByCompany(allRows).find((c) => c.name === company);
+      if (match) downloadCsv('field-experience-' + safeFilename(company) + '.csv', toCsv(match.rows));
+      return;
+    }
+    const card = e.target.closest('.company-card');
+    if (!card) return;
+    searchBox.value = card.dataset.company;
+    applyFilter();
+    document.getElementById('dataTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   // Auto-unlock if a passcode is already remembered on this device.
