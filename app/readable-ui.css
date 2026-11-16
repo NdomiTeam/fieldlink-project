@@ -1,0 +1,125 @@
+/* Readability pass: stronger type, darker secondary copy, and a clean sans-serif. */
+:root {
+  --font-display: var(--font-sans), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --foreground: #17243b;
+  --muted-foreground: #53627a;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+body { font-size: 15px; line-height: 1.55; }
+.welcome-copy h1,
+.auth-card h1,
+.portal-welcome h1,
+.auth-side-note h2,
+.choice-card h3,
+.accepted-card h3 {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 700;
+  letter-spacing: -.035em;
+}
+
+/* Restore comfortable reading sizes where the original dashboard used 8–11px text. */
+.sidebar-label, .eyebrow, .welcome-tag, .welcome-index,
+.sidebar-version, .cycle-tag, .workspace-switcher,
+.breadcrumb, .notification-popover span, .profile-copy span,
+.sidebar-help div span, .welcome-meta, .status-pill,
+.checklist-top, .step-index, .step-status, .step-body p,
+.price-row span, .field-label, .secure-note, .completed-message span,
+.completed-message .amount-paid, .locked-hint, .upload-file-copy small,
+.upload-action, .upload-success, .upload-demo-note,
+.timeline-copy span, .timeline-date, .choice-label, .choice-card > p,
+.countdown-title, .countdown-digits span, .offer-info span,
+.offer-info small, .choice-warning p, .accepted-card p,
+.help-card p, .help-card button, .aside-caption,
+.portal-welcome p:last-child, .metric-top, .metric-bottom,
+.metric-trend, .outline-button, .search-box input,
+.filter-pills button, .applicant-info > span, .applicant-info > small,
+.applicant-date, .list-footer, .empty-list, .portal-tip span,
+.portal-tip strong, .company-review-info span, .company-review-info small,
+.review-button, .empty-state, .live-indicator, .activity-item strong,
+.activity-item span:not(.activity-icon), .activity-item small,
+.activity-footer, .admin-bottom-note, .app-footer,
+.auth-subtitle, .auth-field, .auth-error, .auth-notice,
+.auth-switch, .auth-back, .auth-security, .auth-side-note > span,
+.auth-side-note p {
+  font-size: 13px !important;
+}
+
+.sidebar-label, .eyebrow, .welcome-tag, .choice-label, .live-indicator {
+  color: #53627a;
+  font-weight: 700;
+  letter-spacing: .055em;
+}
+.profile-copy span, .sidebar-help div span, .sidebar-version,
+.breadcrumb, .notification-popover span, .cycle-tag,
+.workspace-switcher, .section-description, .welcome-meta,
+.step-body p, .secure-note, .completed-message span,
+.locked-hint, .upload-file-copy small, .upload-demo-note,
+.timeline-copy span, .timeline-date, .choice-card > p,
+.countdown-digits span, .offer-info span, .offer-info small,
+.choice-warning p, .accepted-card p, .help-card p,
+.aside-caption, .portal-welcome p:last-child, .metric-bottom,
+.applicant-info > span, .applicant-info > small, .applicant-date,
+.list-footer, .empty-list, .portal-tip span,
+.company-review-info span, .company-review-info small,
+.activity-item span:not(.activity-icon), .activity-item small,
+.admin-bottom-note, .app-footer, .auth-subtitle,
+.auth-security, .auth-side-note p {
+  color: #53627a;
+}
+
+.side-nav button, .workspace-menu button, .mobile-student-tabs button,
+.mobile-bottom-nav button { font-size: 14px; }
+.profile-copy strong, .sidebar-help strong, .topbar .breadcrumb strong,
+.step-body h3, .completed-message strong, .upload-file-copy strong,
+.timeline-copy strong, .offer-info strong, .help-card h4,
+.applicant-info > strong, .company-review-info strong,
+.portal-tip strong, .filter-pills button.active {
+  font-size: 14px;
+  color: #1d2b45;
+}
+.section-heading h2, .portal-list-header h2, .panel-title h2 { font-size: 21px; }
+.step-body h3 { font-weight: 700; }
+.step-body p, .timeline-copy strong, .choice-card > p,
+.offer-info span, .accepted-card p, .help-card p,
+.applicant-info > span, .company-review-info span { line-height: 1.55; }
+.status-pill { font-weight: 650; }
+.button-primary, .pay-button, .auth-submit, .review-button,
+.accept-button, .outline-button, .quiet-link, .upload-action {
+  font-size: 14px;
+  font-weight: 650;
+}
+.metric-top { font-weight: 600; }
+.metric-value { font-size: 30px; }
+.search-box input { font-size: 14px !important; }
+.auth-field input { font-size: 15px; }
+.auth-card h1 { font-size: 30px; }
+.auth-subtitle { line-height: 1.65; }
+
+@media (max-width: 640px) {
+  body { font-size: 15px; }
+  .welcome-copy h1 { font-size: 29px; }
+  .welcome-copy > p, .welcome-meta { font-size: 14px; }
+  .welcome-tag, .welcome-index { font-size: 12px; }
+  .section-heading h2 { font-size: 19px; }
+  .section-description { font-size: 13px !important; }
+  .step-body h3, .profile-copy strong, .upload-file-copy strong,
+  .offer-info strong, .help-card h4, .applicant-info > strong { font-size: 14px; }
+  .step-body p, .status-pill, .timeline-copy strong,
+  .timeline-copy span, .choice-card > p, .offer-info span,
+  .help-card p, .applicant-info > span, .applicant-info > small,
+  .portal-welcome p:last-child, .metric-top, .metric-bottom,
+  .filter-pills button, .list-footer, .portal-tip span,
+  .company-review-info span, .company-review-info small,
+  .review-button, .auth-subtitle, .auth-field { font-size: 13px !important; }
+  .metric-value, .admin-stat-grid .metric-value { font-size: 22px; }
+  .portal-list-header h2, .panel-title h2 { font-size: 17px; }
+  .outline-button { font-size: 13px; }
+  .app-footer { font-size: 12px !important; }
+}
