@@ -1,135 +1,37 @@
-/* Native, section-first dashboard surfaces: hierarchy comes from spacing and rules, not cards. */
-.dashboard-section,
-.workflow-section,
-.student-aside > section,
-.portal-list-card,
-.admin-panel,
-.metric-card,
-.timeline-card,
-.checklist-card,
-.choice-card,
-.accepted-card,
-.help-card {
-  box-shadow: none;
-}
-
-/* Student dashboard: a clean sequence of native sections and checklist rows. */
-.student-grid { gap: 42px; }
-.workflow-section + .workflow-section { margin-top: 40px; }
-.checklist { gap: 0; border-top: 1px solid #dfe5ee; }
-.checklist-card,
-.checklist-card.is-current,
-.checklist-card.is-locked {
+/* Native empty-session notice: no hero/card surface, just readable page content. */
+.student-content > .welcome-card {
+  display: block;
+  min-height: 0;
+  overflow: visible;
   border: 0;
-  border-bottom: 1px solid #dfe5ee;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  padding: 22px 4px;
+  padding: clamp(32px, 7vw, 88px) 0;
+  color: #17243b;
 }
-.checklist-card:hover { box-shadow: none; background: rgba(255,255,255,.38); }
-.checklist-card.is-current { border-color: #dfe5ee; }
-.checklist-top { padding: 0 2px; }
-.step-body { margin-top: 14px; }
-.payment-form,
-.completed-message,
-.locked-hint { border-top-color: #e4e9f1; }
-
-.timeline-card {
-  border: 0;
-  border-top: 1px solid #dfe5ee;
-  border-bottom: 1px solid #dfe5ee;
-  border-radius: 0;
-  background: transparent;
-  padding: 20px 4px;
+.student-content > .welcome-card::before,
+.student-content > .welcome-card::after,
+.student-content > .welcome-card .welcome-orb,
+.student-content > .welcome-card .welcome-illustration,
+.student-content > .welcome-card .welcome-index {
+  display: none;
 }
-.timeline-progress { left: 16px; }
-.timeline-step { min-height: 58px; }
-
-.student-aside { gap: 28px; }
-.student-aside > section {
-  border: 0;
-  border-top: 1px solid #dfe5ee;
-  border-radius: 0;
-  background: transparent;
-  padding: 20px 0;
+.student-content > .welcome-card .welcome-copy {
+  max-width: 720px;
 }
-.student-aside > section:last-of-type { border-bottom: 1px solid #dfe5ee; }
-.student-aside .choice-card,
-.student-aside .accepted-card,
-.student-aside .help-card { box-shadow: none; }
-.countdown { border-radius: 8px; }
-.offer-item { padding: 14px 2px; }
-.upload-list { gap: 0; border-top: 1px solid #e4e9f1; }
-.upload-tile,
-.upload-tile.uploaded {
-  min-height: 66px;
-  border: 0;
-  border-bottom: 1px solid #e4e9f1;
-  border-radius: 0;
-  background: transparent;
-  padding: 12px 4px;
+.student-content > .welcome-card .welcome-tag {
+  color: #3659b9;
 }
-.upload-tile:hover { background: #f0f4ff; transform: none; }
-
-/* Company and admin dashboards: metrics and data live in open, native sections. */
-.stat-grid,
-.admin-stat-grid { gap: 0; }
-.metric-card {
-  min-width: 0;
-  border: 0;
-  border-left: 1px solid #dfe5ee;
-  border-radius: 0;
-  background: transparent;
-  padding: 12px 22px;
+.student-content > .welcome-card .welcome-copy h1 {
+  max-width: 660px;
+  color: #17243b;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.08;
 }
-.metric-card:first-child { border-left: 0; padding-left: 0; }
-.metric-card:hover { background: transparent; box-shadow: none; }
-.portal-list-card,
-.admin-panel {
-  min-width: 0;
-  border: 0;
-  border-top: 1px solid #dfe5ee;
-  border-radius: 0;
-  background: transparent;
-}
-.portal-list-card:hover,
-.admin-panel:hover { box-shadow: none; }
-.portal-list-header,
-.panel-title { padding: 22px 0; }
-.list-controls { padding-right: 0; padding-left: 0; }
-.applicant-row { padding-right: 0; padding-left: 0; }
-.applicant-row:hover { background: rgba(255,255,255,.42); }
-.list-footer { padding-right: 0; padding-left: 0; }
-.admin-content-grid { gap: 34px; }
-.admin-panel + .admin-panel { border-left: 1px solid #dfe5ee; padding-left: 28px; }
-.company-review { padding-right: 0; padding-left: 0; }
-
-/* Keep interactive controls legible while removing decorative card containers. */
-.search-box { background: #fff; }
-.portal-tip { border: 0; border-left: 3px solid #6f88e5; border-radius: 0; background: #eef2ff; }
-.empty-state { background: transparent; }
-
-@media (max-width: 850px) {
-  .student-grid { gap: 28px; }
-  .admin-content-grid { grid-template-columns: 1fr; gap: 20px; }
-  .admin-panel + .admin-panel { border-top: 1px solid #dfe5ee; border-left: 0; padding: 20px 0 0; }
-}
-@media (max-width: 640px) {
-  .workflow-section + .workflow-section { margin-top: 30px; }
-  .student-aside { gap: 12px; }
-  .student-aside > section { padding: 17px 0; }
-  .checklist-card,
-  .checklist-card.is-current,
-  .checklist-card.is-locked { padding: 18px 2px; }
-  .timeline-card { padding: 16px 2px; }
-  .stat-grid,
-  .admin-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .metric-card,
-  .metric-card:first-child { border-left: 1px solid #dfe5ee; padding: 10px 8px; }
-  .metric-card:first-child { border-left: 0; }
-  .portal-list-header,
-  .panel-title { padding: 18px 0; }
-  .applicant-row { padding-top: 14px; padding-bottom: 14px; }
-  .admin-content-grid { gap: 18px; }
+.student-content > .welcome-card .welcome-copy > p {
+  max-width: 620px;
+  color: #53627a;
+  font-size: 17px;
+  line-height: 1.7;
 }
