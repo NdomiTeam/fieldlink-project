@@ -5,6 +5,7 @@ import './globals.css'
 import './modern-ui.css'
 import './readable-ui.css'
 import './native-sections.css'
+import './native-auth.css'
 
 const display = Fraunces({
   subsets: ['latin'],
