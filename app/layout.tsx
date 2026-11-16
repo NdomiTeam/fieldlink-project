@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import './modern-ui.css'
+import './readable-ui.css'
 
 const display = Fraunces({
   subsets: ['latin'],
